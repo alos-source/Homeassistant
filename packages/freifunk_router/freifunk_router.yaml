@@ -1,0 +1,100 @@
+# ====================================================================================================
+# Home Assistant Paket für Freifunk Router-Monitoring
+#
+# Dieses Paket liest Daten deines Freifunk-Routers über die Freifunk Franken Monitoring API aus.
+# ERFORDERLICHE ANPASSUNG: Ersetze 'DEIN_FREIFUNK_BENUTZERNAME' durch deinen tatsächlichen Nickname.
+# ====================================================================================================
+
+# RESTful Sensor, um die Daten deines spezifischen Freifunk-Routers abzurufen
+sensor:
+  - platform: rest
+    name: "Freifunk Mein Router Daten" # Interner Name des Sensors. Kann angepasst werden.
+    
+    # ERSETZE 'DEIN_FREIFUNK_BENUTZERNAME' durch den Nickname deines Freifunk-Routers!
+    # Dies ist der wichtigste Anpassungspunkt.
+    resource: "https://monitoring.freifunk-franken.de/api/routers_by_nickname/DEIN_FREIFUNK_BENUTZERNAME"
+    
+    value_template: "{{ value_json }}" # Speichert die gesamte JSON-Antwort
+    json_attributes:
+      - "nodes" # Extrahiert das 'nodes'-Array als Attribut (enthält deinen Router)
+    
+    # Optional: Abrufintervall des Sensors in Sekunden.
+    # Standardmäßig wird Home Assistant dies selbst verwalten, oft 30 Sekunden.
+    # scan_interval: 300 # Daten alle 5 Minuten abrufen (optional, kann Performance sparen)
+
+# ====================================================================================================
+# Template Sensoren zum Extrahieren spezifischer Router-Informationen
+#
+# Die folgenden Sensoren greifen auf die Daten des obigen RESTful Sensors zu.
+# Du kannst die 'friendly_name' und 'icon_template' anpassen oder weitere Sensoren hinzufügen.
+# ====================================================================================================
+  - platform: template
+    sensors:
+      # Sensor für den Online-Status deines Freifunk-Routers
+      mein_freifunk_router_online:
+        friendly_name: "Mein Freifunk Router Online Status" # Name im Home Assistant Frontend
+        value_template: >
+          {% set my_router = state_attr('sensor.freifunk_mein_router_daten', 'nodes')[0] | default({}) %}
+          {% if my_router and my_router.status == 'online' %}
+            online
+          {% else %}
+            offline
+          {% endif %}
+        # Dynamisches Icon basierend auf dem Status
+        icon_template: >
+          {% if states('sensor.mein_freifunk_router_online') == 'online' %}
+            mdi:router-wireless # Online-Icon
+          {% else %}
+            mdi:router-wireless-off # Offline-Icon
+          {% endif %}
+
+      # Sensor für die Anzahl der Clients auf deinem Freifunk-Router
+      mein_freifunk_router_clients:
+        friendly_name: "Mein Freifunk Router Clients" # Name im Home Assistant Frontend
+        unit_of_measurement: "Clients" # Einheit
+        value_template: >
+          {% set my_router = state_attr('sensor.freifunk_mein_router_daten', 'nodes')[0] | default({}) %}
+          {% if my_router and my_router.clients is defined %}
+            {{ my_router.clients }}
+          {% else %}
+            0
+          {% endif %}
+        icon_template: mdi:account-group # Statisches Icon (siehe Material Design Icons)
+
+      # Sensor für die CPU-Auslastung (loadavg) deines Freifunk-Routers
+      mein_freifunk_router_loadavg:
+        friendly_name: "Mein Freifunk Router Last (LoadAvg)" # Name im Home Assistant Frontend
+        unit_of_measurement: "" # Keine spezifische Einheit, da loadavg ein Durchschnitt ist
+        value_template: >
+          {% set my_router = state_attr('sensor.freifunk_mein_router_daten', 'nodes')[0] | default({}) %}
+          {% if my_router and my_router.loadavg is defined %}
+            {{ my_router.loadavg }}
+          {% else %}
+            0.0
+          {% endif %}
+        icon_template: mdi:cpu-32-bit # Statisches Icon
+
+      # Sensor für die Firmware-Version deines Freifunk-Routers
+      mein_freifunk_router_firmware:
+        friendly_name: "Mein Freifunk Router Firmware" # Name im Home Assistant Frontend
+        value_template: >
+          {% set my_router = state_attr('sensor.freifunk_mein_router_daten', 'nodes')[0] | default({}) %}
+          {% if my_router and my_router.firmware is defined %}
+            {{ my_router.firmware }}
+          {% else %}
+            Unbekannt
+          {% endif %}
+        icon_template: mdi:chip # Statisches Icon
+
+      # Sensor für den letzten Kontakt deines Freifunk-Routers (als DateTime-Objekt)
+      mein_freifunk_router_letzter_kontakt:
+        friendly_name: "Mein Freifunk Router Letzter Kontakt" # Name im Home Assistant Frontend
+        device_class: timestamp # Zeigt dies als Zeitstempel an (für Datum/Uhrzeit-Anzeige)
+        value_template: >
+          {% set my_router = state_attr('sensor.freifunk_mein_router_daten', 'nodes')[0] | default({}) %}
+          {% if my_router and my_router.lastcontact is defined %}
+            {{ my_router.lastcontact }}
+          {% else %}
+            None
+          {% endif %}
+        icon_template: mdi:clock-time-four-outline # Statisches Icon
