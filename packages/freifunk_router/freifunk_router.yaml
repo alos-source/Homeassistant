@@ -48,6 +48,18 @@ sensor:
             mdi:router-wireless-off # Offline-Icon
           {% endif %}
 
+      # Sensor für den Namen deines Freifunk-Routers
+      mein_freifunk_router_name:
+        friendly_name: "Mein Freifunk Router Name" # Name im Home Assistant Frontend
+        value_template: >
+          {% set my_router = state_attr('sensor.freifunk_mein_router_daten', 'nodes')[0] | default({}) %}
+          {% if my_router and my_router.name is defined %}
+            {{ my_router.name }}
+          {% else %}
+            Unbekannt
+          {% endif %}
+        icon_template: mdi:tag-text-outline # Statisches Icon
+
       # Sensor für die Anzahl der Clients auf deinem Freifunk-Router
       mein_freifunk_router_clients:
         friendly_name: "Mein Freifunk Router Clients" # Name im Home Assistant Frontend
