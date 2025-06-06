@@ -14,7 +14,10 @@ sensor:
     # Dies ist der wichtigste Anpassungspunkt.
     resource: "https://monitoring.freifunk-franken.de/api/routers_by_nickname/DEIN_FREIFUNK_BENUTZERNAME"
     
-    value_template: "{{ value_json }}" # Speichert die gesamte JSON-Antwort
+    value_template: >
+      {% set router = value_json.nodes[0] | default({}) %}
+      {{ router.status | default('unknown') }}
+
     json_attributes:
       - "nodes" # Extrahiert das 'nodes'-Array als Attribut (enthält deinen Router)
     
